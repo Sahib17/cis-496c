@@ -4,18 +4,18 @@
 // GET    /auth/me
 
 import express from "express";
-import { authController } from "../controllers/auth.controller.js";
+import {login, logout, me, register, sendMail } from "../controllers/auth.controller.js";
 const router = express.Router();
 
-router.post('/register', authController.register);
+router.post('/register', register);
 
-router.post('/login', authController.login);
+router.post('/login', login);
 
-router.post('/logout', authController.logout);
+router.post('/logout', logout);
 
-router.get('/me', authController.me);
+router.get('/me', me);
 
-router.post('/sendMail', authController.sendMail)
+router.post('/sendMail', sendMail)
 
 export default router;
 

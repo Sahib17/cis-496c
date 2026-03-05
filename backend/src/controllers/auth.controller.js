@@ -4,13 +4,13 @@ import { password } from "../utils/password.js";
 import { token } from "../utils/token.js";
 import { authValidator } from "../validators/auth.validator.js";
 
-const register = async (req, res) => {
+export const register = async (req, res) => {
   try {
     const result = authValidator.register.safeParse(req.body);
     if (!result.success) {
       return res
         .status(400)
-        .json({ errors: result.error.flatten().fieldErrors });
+        .json({ success: false, message: result.error.issues[0].message });
     }
     const validatedData = result.data;
     const hashedPassword = await password.hash(validatedData.password);
@@ -24,7 +24,7 @@ const register = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return res.status(201).json({ success: true, user });
+    return res.status(201).json({ success: true, message: "User registeration successful", data: user });
   } catch (error) {
     return res
       .status(error.statusCode || 500)
@@ -32,13 +32,13 @@ const register = async (req, res) => {
   }
 };
 
-const login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const result = authValidator.login.safeParse(req.body);
     if (!result.success) {
       return res
         .status(400)
-        .json({ errors: result.error.flatten().fieldErrors });
+        .json({ success: false, message: result.error.issues[0].message });
     }
     const user = await authService.login(result.data);
     const jwtToken = token.create(user.email, user._id);
@@ -50,13 +50,13 @@ const login = async (req, res) => {
     });
     return res.status(200).json({ success: true, message: "Logged In"});
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      error: error.message,
-    });
+    return res
+      .status(error.statusCode || 500)
+      .json({ success: false, message: error.message || "Server Error" });
   }
 };
 
-const logout = (req, res) => {
+export const logout = (req, res) => {
   res
     .clearCookie("token", "", {
       httpOnly: true,
@@ -67,30 +67,27 @@ const logout = (req, res) => {
     .json({ success: true, message: "User logged out" });
 };
 
-const me = async (req, res) => {
+export const me = async (req, res) => {
   try {
     const user = token.verify(req.cookies.token);
     if (!user) {
       return res.status(404).json({ success: false, message: "No user found" });
     }
-    const userData = await authService.me(user.sub);
-    return res.status(200).json({ success: true, userData });
-  } catch (error) {
-    res.status(error.statusCode || 500).json({
-      error: error.message,
-    });
+    return res.status(200).json({success: true, message: "User Found", data: user})
+  }
+  catch(error){
+    res.status(error.statusCode || 500).json({success: false, message: error.message || "Server error"})
   }
 };
 
-const sendMail = async (req, res) => {
+export const sendMail = async (req, res) => {
   await sendEmail({
   to: "sharp.sahib@gmail.com",
   subject: "Expense added",
   html: "<p>New expense added in Splitr</p>"
 });
 console.log("mail sent");
-res.status(200).json({success: true,})
-
+res.status(200).json({success: true, message: "Mail sent"})
 }
 
 export const authController = {

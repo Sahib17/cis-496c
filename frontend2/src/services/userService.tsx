@@ -23,3 +23,8 @@ export const patchUser = async (user: user) => {
     const response = await axios.patch(`${import.meta.env.BASE_URL}/users/`, {user});
     return response.data;
 }
+
+export const deleteUser = async () => {
+  const response = await axios.patch(`${import.meta.env.BASE_URL}/users/delete`);
+  return response.data;
+}

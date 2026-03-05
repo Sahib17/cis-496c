@@ -13,27 +13,30 @@ export const getUserById = async (req, res) => {
         .status(404)
         .json({ success: false, message: "User not found" });
     }
-    return res.status(200).json({ success: true, user });
+    return res.status(200).json({ success: true, data: user });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      error: error.message,
-    });
+    return res
+      .status(error.statusCode || 500)
+      .json({ success: false, message: error.message || "Server Error" });
   }
 };
 
 export const getUserByMail = async (req, res) => {
   try {
-    const user = await userService.getUserByMail(req.user.userID, req.body.targetMail);
+    const user = await userService.getUserByMail(
+      req.user.userId,
+      req.body.targetMail,
+    );
     if (!user) {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
     }
-    return res.status(200).json({ success: true, user });
+    return res.status(200).json({ success: true, data: user });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      error: error.message,
-    });
+    return res
+      .status(error.statusCode || 500)
+      .json({ success: false, message: error.message || "Server Error" });
   }
 };
 
@@ -41,18 +44,21 @@ export const patchUser = async (req, res) => {
   try {
     const result = userValidator.patchUser.safeParse(req.body);
     if (!result.success) {
-      return res
-        .status(400)
-        .json({ errors: result.error.flatten().fieldErrors });
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: result.error.flatten().fieldErrors,
+      });
     }
     const validatedData = result.data;
     const user = await userService.patchUser(req.user.userId, validatedData);
     console.log(user);
-    
-    return res.status(200).json({success: true, user})
-      
+
+    return res.status(200).json({ success: true, data: user });
   } catch (error) {
-    console.log(error)
+    return res
+      .status(error.statusCode || 500)
+      .json({ success: false, message: error.message || "Server Error" });
   }
 };
 
@@ -61,7 +67,7 @@ export const deleteUser = async (req, res) => {
     const user = await userService.deleteUser(req.user.userId);
     if (!user) {
       return res
-        .status(400)
+        .status(404)
         .json({ success: false, message: "Couldn't delete the user" });
     }
     res.clearCookie("token", {
@@ -74,7 +80,9 @@ export const deleteUser = async (req, res) => {
       .status(200)
       .json({ success: true, message: "User deleted successfully" });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res
+      .status(error.statusCode || 500)
+      .json({ success: false, message: error.message || "Server Error" });
   }
 };
 

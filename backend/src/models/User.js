@@ -35,7 +35,7 @@ const userSchema = new Schema(
     status: {
       type: String,
       enum: ["ACTIVE", "DELETED", "INACTIVE", "BANNED"],
-      default: "INACTIVE",
+      default: "ACTIVE",
       required: true,
     },
     defaultCurrency: {
@@ -51,37 +51,37 @@ const userSchema = new Schema(
       required: true,
       default: "EN",
     },
-    friends: [
-      {
-        user: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-          required: true,
-          index: true,
-        },
-        status: {
-          type: String,
-          enum: ["ACCEPTED", "PENDING", "BLOCKED"],
-          required: true,
-        },
-        createdAt: {
-          type: Date,
-          default: Date.now,
-        }
-      }
-    ],
-    balances: [
-          {
-            user: {
-              type: mongoose.Schema.Types.ObjectId,
-              ref: "User"
-            },
-            netAmount: {
-              type: Number,
-              default: 0,
-            }
-          }
-        ]
+    // friends: [
+    //   {
+    //     user: {
+    //       type: mongoose.Schema.Types.ObjectId,
+    //       ref: "User",
+    //       required: true,
+    //       index: true,
+    //     },
+    //     status: {
+    //       type: String,
+    //       enum: ["ACCEPTED", "PENDING", "BLOCKED"],
+    //       required: true,
+    //     },
+    //     createdAt: {
+    //       type: Date,
+    //       default: Date.now,
+    //     }
+    //   }
+    // ],
+    // balances: [
+    //       {
+    //         user: {
+    //           type: mongoose.Schema.Types.ObjectId,
+    //           ref: "User"
+    //         },
+    //         netAmount: {
+    //           type: Number,
+    //           default: 0,
+    //         }
+    //       }
+    //     ]
   },
   { timestamps: true },
 );

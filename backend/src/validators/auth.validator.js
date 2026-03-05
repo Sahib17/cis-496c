@@ -10,7 +10,7 @@ const auth = (email, userId) => {
 const register = z.object({
   name: z.string().trim().min(1, "Name is required"),
   email: z.email().trim().toLowerCase().min(1, "Email is required"),
-  phone: z.string().trim().min(10, "Phone is required"),
+  phone: z.string().trim().min(10, "Phone is required and needs to be of 10 digits"),
   password: z.string().min(5, "Password must be atleast 5 characters"),
 });
 
