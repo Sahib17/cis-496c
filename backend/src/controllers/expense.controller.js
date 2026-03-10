@@ -20,7 +20,7 @@ export const postExpense = async (req, res) => {
     }
     const validatedData = result.data;
     const expense = expenseService.calculateSplit(validatedData.paidBy, validatedData.members, validatedData.options)
-    const expensed = await expenseService.postExpense(req.user.userId, req.body, result.withBalance);
+    const expensed = await expenseService.postExpense(req.user.userId, req.body, expense.withBalance);
 
 console.log("expense: ", expense);
 return res.status(200).json({success: true, expense})
@@ -44,52 +44,16 @@ return res.status(200).json({success: true, expense})
   }
 };
 
-export const getExpenses = async (req, res) => {
-  try {
-    const result = await expenseService.getExpenses(sampleData);
-  } catch (error) {
-    res
-      .status(error.statusCode || 500)
-      .json({ success: false, error: error.message });
-  }
-};
-
-export const getExpense = async (req, res) => {
-  try {
-    const result = await expenseService.getExpense(sampleData);
-  } catch (error) {
-    res
-      .status(error.statusCode || 500)
-      .json({ success: false, error: error.message });
-  }
-};
-
-export const patchExpense = async (req, res) => {
-  try {
-    const result = await expenseService.patchExpense(sampleData);
-  } catch (error) {
-    res
-      .status(error.statusCode || 500)
-      .json({ success: false, error: error.message });
-  }
-};
-
 export const deleteExpense = async (req, res) => {
   try {
-    const result = await expenseService.deleteExpense(sampleData);
+  const user = req.user.userId;
+  const group = req.body.groupId;
+  const expense = req.params.expenseId;
+  const result = await expenseService.deleteExpense(user, group, expense);
+  res.status(200).json({success: true, message: "expense deleted", data: result})
   } catch (error) {
-    res
-      .status(error.statusCode || 500)
-      .json({ success: false, error: error.message });
+    res.status(500 || error.statusCode).send(error.message || "Server error");
   }
-};
+  
+}
 
-export const postComment = async (req, res) => {
-  try {
-    const result = await expenseService.postComment(sampleData);
-  } catch (error) {
-    res
-      .status(error.statusCode || 500)
-      .json({ success: false, error: error.message });
-  }
-};

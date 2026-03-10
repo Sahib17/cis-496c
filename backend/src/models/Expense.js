@@ -35,8 +35,7 @@ const expenseSchema = new Schema(
         },
       },
     ],
-    members: {
-      type: [
+    members: [
         {
           user: {
             type: Schema.Types.ObjectId,
@@ -55,7 +54,6 @@ const expenseSchema = new Schema(
           },
         },
       ],
-    },
     status: {
       type: String,
       enum: ["ACTIVE", "INACTIVE"],

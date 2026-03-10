@@ -35,6 +35,14 @@ const App = () => {
           </ProtectedRoute>
         }
       ></Route>
+      <Route
+        path="/groups/*"
+        element={
+          <ProtectedRoute>
+            <Groups />
+          </ProtectedRoute>
+        }
+      ></Route>
       </Route>
 
       

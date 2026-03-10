@@ -6,6 +6,8 @@
 // POST   /expenses/:expenseId/comments
 
 import Expense from "../models/Expense.js";
+import Group from "../models/Group.js";
+import GroupMember from "../models/GroupMember.js";
 import {
   attachBalances,
   attachPayments,
@@ -13,26 +15,73 @@ import {
   settlement,
 } from "../utils/expenseUtils.js";
 
+
 const postExpense = async (userId, body, members) => {
+  console.log("members thing here: ",members);
+  
   const result = await Expense.create({
     name: body.name,
     groupId: body.groupId,
     createdBy: userId,
     paidBy: body.paidBy,
-    ...members,
+    members: members,
     status: "ACTIVE",
-    options,
+    options: body.options,
   })
   return result
 };
 
-const getExpenses = async (req, res) => {};
+const getGroupExpenses = async (userId, groupid) => {};
 
-const getExpense = async (req, res) => {};
+const getExpense = async (userId) => {
+  try {
+    const expense = await Expense.findById(expenseId);
+    if (!expense){
+      const error = new Error("Expense not found");
+      error.statusCode = 404;
+      throw error;
+    };
+    const member = await GroupMember.findOne({groupId: expense.groupId, memberId: userId, status: "JOINED"});
+    if(!member){
+      const error = new Error("Unauthorized");
+      error.statusCode = 401;
+      throw error;
+    }
+    return expense;
+  } catch (error) {
+    throw error;
+  }
+};
 
 const patchExpense = async (req, res) => {};
 
-const deleteExpense = async (req, res) => {};
+const deleteExpense = async (userId, expenseId) => {
+  try {
+    const expense = await Expense.findById(expenseId);
+    if (!expense){
+      const error = new Error("Expense not found");
+      error.statusCode = 404;
+      throw error;
+    };
+    const member = await GroupMember.findOne({groupId: expense.groupId, memberId: userId, status: "JOINED"});
+    if(!member){
+      const error = new Error("Unauthorized");
+      error.statusCode = 401;
+      throw error;
+    }
+    if(expense.status === "INACTIVE"){
+      const error = new Error("Expense already deleted");
+      error.statusCode = 400;
+      throw error;
+    }
+    const updatedExpense = await Expense.findByIdAndUpdate(expenseId, {
+      status: "INACTIVE"
+    });
+    return updatedExpense;
+  } catch (error) {
+    throw error;
+  }
+};
 
 const postComment = async (req, res) => {};
 
@@ -234,12 +283,22 @@ const adjustmentSplit = (paidBy, members) => {
   };
 };
 
+const Gsettlement = async (groupId, userId) => {
+  const expenses = await Expense.find({groupId, status: "ACTIVE"});
+  const withPaid = attachPayments(withOwed, paidBy);
+  const withBalance = attachBalances(withPaid);
+  const creditors = withBalance.filter((m) => m.balance > 0);
+  const debtors = withBalance.filter((m) => m.balance < 0);
+}
+
 export const expenseService = {
   postExpense,
-  getExpenses,
+  // getExpenses,
   getExpense,
   patchExpense,
   deleteExpense,
   postComment,
   calculateSplit,
+  Gsettlement
 };
+

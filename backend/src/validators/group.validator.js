@@ -7,8 +7,6 @@ const createGroup = (body) => {
 
   if (!Array.isArray(members)) return "Members must be an array";
 
-  if (members.length < 1) return "At least one member required";
-
   if (type === "FRIEND" && members.length !== 1)
     return "FRIEND must have exactly one member";
 

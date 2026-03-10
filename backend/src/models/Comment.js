@@ -10,6 +10,12 @@ const commentSchema = new Schema(
       required: true,
       index: true,
     },
+    expenseId: {
+      type: Schema.Types.ObjectId,
+      ref: "Expense",
+      required: true,
+      index: true,
+    },
     sender: {
       type: Schema.Types.ObjectId,
       ref: "Group",

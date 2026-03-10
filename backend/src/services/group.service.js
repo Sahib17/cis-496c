@@ -4,6 +4,7 @@ import Expense from "../models/Expense.js";
 import Group from "../models/Group.js";
 import User from "../models/User.js";
 import GroupMember from "../models/GroupMember.js";
+import Comment from "../models/Comment.js";
 
 // / POST   /groups
 // / GET    /groups
@@ -105,22 +106,51 @@ const patchGroup = async (userId, groupId, body) => {
 };
 
 const deleteGroup = async (userId, groupId) => {
+  const session = await mongoose.startSession();
   try {
-    const result = await Group.findOneAndDelete({
-      _id: groupId,
-      "members.user": userId,
-      members: { $size: 1 },
-    });
-    if (!result) {
-      const error = new Error(
-        "Group not found, user not authorized, or group has multiple members",
-      );
+    session.startTransaction();
+    const group = await Group.findById(groupId).session(session);
+    if (!group){
+      const error = new Error("Group not found");
       error.statusCode = 404;
       throw error;
     }
-    return result;
+    const member = await GroupMember.findOne({
+      groupId,
+      memberId: userId,
+      status: "JOINED",
+    }).session(session);
+    if (!member) {
+      const error = new Error("You are not a member of the group");
+      error.statusCode = 401;
+      throw error;
+    }
+    const count = await GroupMember.countDocuments({
+      groupId,
+      status: "JOINED",
+    }).session(session);
+    if (count > 1) {
+      const error = new Error(
+        "Cannot delete group as more than 1 members are there",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    await Comment.deleteMany({groupId}).session(session);
+    await Expense.deleteMany({ groupId }).session(session);
+    await GroupMember.deleteMany({ groupId }).session(session);
+    await Group.findByIdAndDelete(groupId).session(session);
+    await session.commitTransaction();
+
+    return "Group Deleted Successfully";
   } catch (error) {
+    await session.abortTransaction();
+
+    logger.error(error);
     throw error;
+  } finally {
+    session.endSession();
   }
 };
 
@@ -167,37 +197,41 @@ const removeMember = async (userId, groupId, targetId) => {
 
 const acceptGroupInvitation = async (userId, groupId) => {
   try {
-    console.log(typeof groupId, groupId)
+    console.log(typeof groupId, groupId);
     console.log(userId, groupId);
-    
-    const result = await GroupMember.findOneAndUpdate({
-      memberId: new mongoose.Types.ObjectId(userId),
-      groupId: new mongoose.Types.ObjectId(groupId),
-      status: "INVITED"
-    }, {
-      status: "JOINED"
-    }, {runValidators: true, returnDocument: "after"});
-    if(!result){
+
+    const result = await GroupMember.findOneAndUpdate(
+      {
+        memberId: new mongoose.Types.ObjectId(userId),
+        groupId: new mongoose.Types.ObjectId(groupId),
+        status: "INVITED",
+      },
+      {
+        status: "JOINED",
+      },
+      { runValidators: true, returnDocument: "after" },
+    );
+    if (!result) {
       const error = new Error("Invitation not found or already joined");
       error.statusCode = 400;
       throw error;
     }
     console.log(result);
-    
+
     return result;
   } catch (error) {
     throw error;
   }
-}
+};
 
 const rejectGroupInvitation = async (userId, groupId) => {
   try {
     const result = await GroupMember.findOneAndDelete({
       memberId: new mongoose.Types.ObjectId(userId),
       groupId: new mongoose.Types.ObjectId(groupId),
-      status: "INVITED"
+      status: "INVITED",
     });
-    if(!result){
+    if (!result) {
       const error = new Error("Invitation not found or already joined");
       error.statusCode = 400;
       throw error;
@@ -206,7 +240,7 @@ const rejectGroupInvitation = async (userId, groupId) => {
   } catch (error) {
     throw error;
   }
-}
+};
 
 export const groupService = {
   createGroup,
