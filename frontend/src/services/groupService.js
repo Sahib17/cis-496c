@@ -7,13 +7,18 @@ export const UserGroups = async () => {
   return response.data;
 }
 
-export const getGroup = async (groupId) => {
+export const GetExpenses = async (groupId) => {
+  const groupExpenses = await axios.get(`${import.meta.env.VITE_API_URL}/groups/${groupId}/expenses`, {withCredentials: true});
+  return ({
+    expenses: groupExpenses.data,
+  });
+}
+
+export const GetGroup = async (groupId) => {
   const group = await axios.get(`${import.meta.env.VITE_API_URL}/groups/${groupId}`, {withCredentials: true});
-  const groupExpenses = await axios.get(`${import.meta.env.VITE_API_URL}/groups/${groupId}/expenses`);
-  const groupMembers = await axios.get(`${import.meta.env.VITE_API_URL}/groups/${groupId}/members`);
+  const groupMembers = await axios.get(`${import.meta.env.VITE_API_URL}/groups/${groupId}/members`, {withCredentials: true});
   return ({
     group: group.data, 
-    expenses: groupExpenses.data,
-    members: groupMembers,
+    members: groupMembers.data,
   });
 }

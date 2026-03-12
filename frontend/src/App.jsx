@@ -10,6 +10,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Unauthorized from "./pages/Unauthorized";
 import Groups from "./pages/Groups";
 import AppLayout from "./components/ui/AppLayout";
+import GroupExpenses from "./pages/GroupExpenses";
 
 const App = () => {
   return (
@@ -36,10 +37,10 @@ const App = () => {
         }
       ></Route>
       <Route
-        path="/groups/*"
+        path="/groups/:groupId"
         element={
           <ProtectedRoute>
-            <Groups />
+            <GroupExpenses />
           </ProtectedRoute>
         }
       ></Route>

@@ -105,9 +105,9 @@ const GroupCard = ({ g }) => {
   const colors = roleMeta[role] || roleMeta.MEMBER;
 
   return (
-    <div className="flex items-center gap-4 bg-[#161810] border border-white/[0.07] rounded-2xl px-5 py-4 transition-all duration-200 hover:border-white/[0.13] hover:bg-[#1a1c14]">
+    <div className="flex items-center gap-4 bg-[#161810] border border-white/[0.07] rounded-2xl px-5 py-4 transition-all duration-200 hover:border-white/13 hover:bg-[#1a1c14]">
       {/* Avatar — square for groups */}
-      <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold text-[#c8f135] border border-[#c8f135]/20"
+      <div className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold text-[#c8f135] border border-[#c8f135]/20"
         style={{ background: "rgba(200,241,53,0.07)", fontFamily: "'Syne', sans-serif" }}>
         {getInitials(g.groupId.name)}
       </div>
