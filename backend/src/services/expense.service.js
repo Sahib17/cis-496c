@@ -29,12 +29,15 @@ const getExpenses = async (userId) => {
 
 
 const getExpense = async (userId, expenseId) => {
-  const expense = await Expense.findById(expenseId);
+  const expense = await Expense.findById(expenseId)
+    .populate("paidBy.user", "name email")
+    .populate("members.user", "name email")
+    .populate("createdBy", "name email");
   if (!expense) throw { statusCode: 404, message: "Expense not found" };
-  
+
   const member = await GroupMember.findOne({ groupId: expense.groupId, memberId: userId, status: "JOINED" });
   if (!member) throw { statusCode: 401, message: "Unauthorized" };
-  
+
   return expense;
 };
 
@@ -299,7 +302,7 @@ const adjustmentSplit = (paidBy, members) => {
 
 export const expenseService = {
   postExpense,
-  // getExpenses,
+  getExpenses,
   getExpense,
   patchExpense,
   deleteExpense,
@@ -307,4 +310,3 @@ export const expenseService = {
   calculateSplit,
   Gsettlement,
 };
-

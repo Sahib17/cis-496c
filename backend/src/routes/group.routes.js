@@ -28,7 +28,7 @@ router.get('/:groupId/members', isLoggedIn, getGroupMembers)
 
 router.post('/:groupId/members', isLoggedIn, postMembers);
 
-router.patch('/:groupId/members/:userId', isLoggedIn, removeMember);
+router.delete('/:groupId/members/:userId', isLoggedIn, removeMember);
 
 router.patch('/:groupId/acceptInvitation', isLoggedIn, acceptGroupInvitation);
 

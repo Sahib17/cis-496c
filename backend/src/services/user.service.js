@@ -1,8 +1,10 @@
 import User from "../models/User.js";
+import GroupMember from "../models/GroupMember.js";
+import Expense from "../models/Expense.js";
 
 const getUserById = async (requesterId, targetId) => {
   try {
-    const user = User.findOne({
+    const user = await User.findOne({
       _id: targetId,
       blocklist: { $ne: requesterId },
     }).select("-password");
@@ -53,10 +55,10 @@ const getUserBalanceSummary = async (userId) => {
 
 const getUserByMail = async (requesterId, targetMail) => {
   try {
-    const user = User.findOne({
+    const user = await User.findOne({
       email: targetMail,
-      blocklist: { $ne: requesterId }, // $ne = not equal
-    }).select("-password"); // return everything except password
+      blocklist: { $ne: requesterId },
+    }).select("-password");
     return user;
   } catch (err) {
     if (err.status === 404) {

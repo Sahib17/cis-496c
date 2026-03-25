@@ -1,5 +1,5 @@
-import { notificationService } from "../services/notification.service";
-import { notificationValidator } from "../validators/notification.validator";
+import { notificationService } from "../services/notification.service.js";
+import { notificationValidator } from "../validators/notification.validator.js";
 
 export const postNotification = async (req, res) => {
   try {

@@ -1,6 +1,3 @@
-// GET    /users/:id
-// PUT    /users/:id
-// DELETE /users/:id
 import express from "express";
 import {
   deleteUser,
@@ -17,8 +14,8 @@ router.get("/", (req, res) => {
   res.send("hi");
 });
 
-// GET a user by userId
-router.get("/:id", isLoggedIn, getUserById);
+// ⚠️ Must be before /:id
+router.get("/balance-summary", isLoggedIn, getBalanceSummary);
 
 // GET a user by email
 router.post("/", isLoggedIn, getUserByMail);
@@ -26,14 +23,15 @@ router.post("/", isLoggedIn, getUserByMail);
 // UPDATE logged in user
 router.patch("/", isLoggedIn, patchUser);
 
-// DELETE (actually update) logged in user
+// DELETE (soft delete) logged in user
 router.patch("/delete", isLoggedIn, deleteUser);
-
-router.get("/balance-summary", isLoggedIn, getBalanceSummary);
 
 router.post("/image", isLoggedIn, (req, res) => {
   const authParams = imagekit.getAuthenticationParameters();
   res.status(200).json(authParams);
 });
+
+// GET a user by userId — must be LAST
+router.get("/:id", isLoggedIn, getUserById);
 
 export default router;

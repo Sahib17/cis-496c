@@ -1,39 +1,11 @@
 import mongoose from "mongoose";
 
-const Schema = mongoose.Schema;
+const settlementSchema = new mongoose.Schema({
+  groupId: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', required: true },
+  from: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  to: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  amount: { type: Number, required: true }, // Store in cents
+  date: { type: Date, default: Date.now }
+}, { timestamps: true });
 
-const settlementSchema = new Schema(
-  {
-    groupId: {
-      type: Schema.Types.ObjectId,
-      ref: "Group",
-      required: true,
-      index: true,
-    },
-    from: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    to: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    amount: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    status: {
-      type: String,
-      enum: ["PENDING", "COMPLETED"],
-      default: "COMPLETED",
-    }
-  },
-  { timestamps: true },
-);
-
-const Settlement = mongoose.model("Settlement", settlementSchema);
-
-export default Settlement;
+export const Settlement = mongoose.model("Settlement", settlementSchema);

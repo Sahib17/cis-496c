@@ -127,14 +127,14 @@ const Expenses = () => {
   }, []);
 
   useEffect(() => {
-    const getGroupExpenses = async () => {
-      const response = await GetExpenses(groupId);
-      console.log("axios", response);
-      setExpenses(response.expenses.data);
-      setLoading(false);
-    };
-    if (groupId) getGroupExpenses();
-  }, [groupId]);
+  const getGroupExpenses = async () => {
+    const response = await GetExpenses(groupId);
+    console.log("axios", response);
+    setExpenses(response.data);  // ✅ was response.expenses.data
+    setLoading(false);
+  };
+  if (groupId) getGroupExpenses();
+}, [groupId]);
 
   useEffect(() => {
     console.log("updated expenses:", expenses);

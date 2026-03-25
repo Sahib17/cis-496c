@@ -143,6 +143,7 @@ export const removeMember = async (req, res) => {
   try {
     const result = await groupService.removeMember(
       req.user.userId,
+      req.params.groupId,
       req.params.userId,
     );
     res.status(200).json({ success: true, result });

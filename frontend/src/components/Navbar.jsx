@@ -7,10 +7,9 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const navLinks = [
-    { label: 'Dashboard', to: '/dashboard' },
-    { label: 'Groups', to: '/groups' },
-    { label: 'Activity', to: '/activity' },
-  ]
+  { label: 'Dashboard', to: '/dashboard' },
+  { label: 'Groups & Friends', to: '/groups' }, // was /activity which has no page
+]
 
   return (
     <>

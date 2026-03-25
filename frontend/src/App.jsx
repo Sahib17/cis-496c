@@ -11,46 +11,52 @@ import Unauthorized from "./pages/Unauthorized";
 import Groups from "./pages/Groups";
 import AppLayout from "./components/ui/AppLayout";
 import GroupExpenses from "./pages/GroupExpenses";
+import ExpenseDetail from "./pages/ExpenseDetail";
 
 const App = () => {
   return (
     <Routes>
-      <Route path="/" element={<Home />}></Route>
-      <Route path="/login" element={<Login />}></Route>
-      <Route path="/register" element={<Register />}></Route>
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
       <Route element={<AppLayout />}>
         <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      ></Route>
-      <Route
-        path="/groups"
-        element={
-          <ProtectedRoute>
-            <Groups />
-          </ProtectedRoute>
-        }
-      ></Route>
-      <Route
-        path="/groups/:groupId"
-        element={
-          <ProtectedRoute>
-            <GroupExpenses />
-          </ProtectedRoute>
-        }
-      ></Route>
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/groups"
+          element={
+            <ProtectedRoute>
+              <Groups />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/groups/:groupId"
+          element={
+            <ProtectedRoute>
+              <GroupExpenses />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/groups/:groupId/expense/:expenseId"
+          element={
+            <ProtectedRoute>
+              <ExpenseDetail />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
-      
       <Route path="/unauthorized" element={<Unauthorized />} />
-      <Route path="/Navbar" element={<Navbar />}></Route>
-
-      <Route path="/*" element={<NotFound />}></Route>
+      <Route path="/*" element={<NotFound />} />
     </Routes>
   );
 };

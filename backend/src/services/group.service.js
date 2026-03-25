@@ -49,7 +49,7 @@ const createGroup = async (userId, body) => {
     const groupMember = await GroupMember.insertMany(members, { session });
     await session.commitTransaction();
     session.endSession();
-    return (group, groupMember);
+    return { group, groupMember };
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -123,7 +123,10 @@ const getGroupExpenses = async (userId, groupId) => {
   const isMember = await GroupMember.findOne({ groupId, memberId: userId, status: "JOINED" });
   if (!isMember) throw { statusCode: 401, message: "Unauthorized" };
 
-  return await Expense.find({ groupId, status: "ACTIVE" });
+  return await Expense.find({ groupId, status: "ACTIVE" })
+    .populate("paidBy.user", "name email")
+    .populate("members.user", "name email")
+    .populate("createdBy", "name email");
 };
 
 const deleteGroup = async (userId, groupId) => {
