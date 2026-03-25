@@ -6,20 +6,12 @@
 // POST   /expenses/:expenseId/comments
 
 import Expense from "../models/Expense.js";
-import Group from "../models/Group.js";
 import GroupMember from "../models/GroupMember.js";
-import {
-  attachBalances,
-  attachPayments,
-  distributeRemainder,
-  settlement,
-} from "../utils/expenseUtils.js";
-
+import Comment from "../models/Comment.js";
+import { attachBalances, attachPayments, distributeRemainder, settlement } from "../utils/expenseUtils.js";
 
 const postExpense = async (userId, body, members) => {
-  console.log("members thing here: ",members);
-  
-  const result = await Expense.create({
+  return await Expense.create({
     name: body.name,
     groupId: body.groupId,
     createdBy: userId,
@@ -27,33 +19,41 @@ const postExpense = async (userId, body, members) => {
     members: members,
     status: "ACTIVE",
     options: body.options,
-  })
-  return result
+  });
+};
+
+const getExpenses = async (userId) => {
+  const userGroups = await GroupMember.find({ memberId: userId, status: "JOINED" }).distinct("groupId");
+  return await Expense.find({ groupId: { $in: userGroups }, status: "ACTIVE" }).populate("createdBy", "name email");
 };
 
 
-
-const getExpense = async (userId) => {
-  try {
-    const expense = await Expense.findById(expenseId);
-    if (!expense){
-      const error = new Error("Expense not found");
-      error.statusCode = 404;
-      throw error;
-    };
-    const member = await GroupMember.findOne({groupId: expense.groupId, memberId: userId, status: "JOINED"});
-    if(!member){
-      const error = new Error("Unauthorized");
-      error.statusCode = 401;
-      throw error;
-    }
-    return expense;
-  } catch (error) {
-    throw error;
-  }
+const getExpense = async (userId, expenseId) => {
+  const expense = await Expense.findById(expenseId);
+  if (!expense) throw { statusCode: 404, message: "Expense not found" };
+  
+  const member = await GroupMember.findOne({ groupId: expense.groupId, memberId: userId, status: "JOINED" });
+  if (!member) throw { statusCode: 401, message: "Unauthorized" };
+  
+  return expense;
 };
 
-const patchExpense = async (req, res) => {};
+const patchExpense = async (userId, expenseId, data) => {
+  const expense = await getExpense(userId, expenseId);
+  return await Expense.findByIdAndUpdate(expenseId, { ...data }, { new: true });
+};
+
+const postComment = async (userId, expenseId, body) => {
+  const expense = await Expense.findById(expenseId);
+  if (!expense) throw { statusCode: 404, message: "Expense not found" };
+
+  return await Comment.create({
+    expenseId,
+    groupId: expense.groupId,
+    sender: userId,
+    message: body.message
+  });
+};
 
 const deleteExpense = async (userId, expenseId) => {
   try {
@@ -83,7 +83,21 @@ const deleteExpense = async (userId, expenseId) => {
   }
 };
 
-const postComment = async (req, res) => {};
+const Gsettlement = async (groupId) => {
+  const expenses = await Expense.find({ groupId, status: "ACTIVE" }).lean();
+  const balances = {};
+
+  expenses.forEach(exp => {
+    exp.members.forEach(m => {
+      balances[m.user] = (balances[m.user] || 0) + (m.amountPaid - m.amountOwed);
+    });
+  });
+
+  const creditors = Object.entries(balances).filter(([_, bal]) => bal > 0).map(([user, balance]) => ({ user, balance }));
+  const debtors = Object.entries(balances).filter(([_, bal]) => bal < 0).map(([user, balance]) => ({ user, balance }));
+
+  return settlement(creditors, debtors);
+};
 
 const calculateSplit = (paidBy, members, options) => {
   switch (options) {
@@ -282,14 +296,6 @@ const adjustmentSplit = (paidBy, members) => {
     withBalance,
   };
 };
-
-const Gsettlement = async (groupId, userId) => {
-  const expenses = await Expense.find({groupId, status: "ACTIVE"});
-  const withPaid = attachPayments(withOwed, paidBy);
-  const withBalance = attachBalances(withPaid);
-  const creditors = withBalance.filter((m) => m.balance > 0);
-  const debtors = withBalance.filter((m) => m.balance < 0);
-}
 
 export const expenseService = {
   postExpense,

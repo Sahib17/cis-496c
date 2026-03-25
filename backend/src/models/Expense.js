@@ -31,7 +31,7 @@ const expenseSchema = new Schema(
         amount: {
           type: Number,
           required: true,
-          min: 0
+          min: 0,
         },
       },
     ],
@@ -67,8 +67,10 @@ const expenseSchema = new Schema(
       required: true,
     },
   },
-  { timestamps: true },
+  { timestamps: true,
+   },
 );
+
 
 const Expense = mongoose.model("Expense", expenseSchema);
 

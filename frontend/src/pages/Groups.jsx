@@ -1,34 +1,54 @@
 import { Button } from "@/components/ui/button";
-import { UserGroups } from "@/services/groupService";
+import { AcceptInvite, RejectInvite, UserGroups } from "@/services/groupService";
+import { useAuth } from "@/context/useAuth";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-// ─── FRIENDS HELPERS ──────────────────────────────────────────────────────────
-// FRIENDS LOGIC: Replace getFriendName() with real logic to extract the other
-// person's name from the group. A FRIEND group has 2 members — you and them.
-// e.g. g.groupId.members.find(m => m._id !== currentUser._id)?.name
-const getFriendName = (g) => g.groupId.name ?? "Unknown";
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
 
-const getInitials = (name) =>
-  name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+/**
+ * Returns the display name for a group entry.
+ * - FRIEND groups: shows the OTHER member's name (not the current user)
+ * - GROUP groups: shows the group name
+ */
+const resolveName = (g, currentUserId) => {
+  if (g.groupId.type === "FRIEND") {
+    const other = g.groupId.members?.find((m) => m.user?._id !== currentUserId);
+    return other?.user?.name || g.groupId.name || "Unknown";
+  }
+  return g.groupId.name || "Unnamed Group";
+};
+
+/** Safe initials — handles null/empty names */
+const getInitials = (name) => {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+};
 
 // ─── ROLE BADGE COLOURS ───────────────────────────────────────────────────────
 const roleMeta = {
-  ADMIN:  { bg: "bg-[#c8f135]/10", text: "text-[#c8f135]", border: "border-[#c8f135]/20" },
-  MEMBER: { bg: "bg-white/[0.05]", text: "text-[#8a8d70]", border: "border-white/10" },
+  ADMIN:  { bg: "bg-[#c8f135]/10", text: "text-[#c8f135]",  border: "border-[#c8f135]/20" },
+  MEMBER: { bg: "bg-white/[0.05]", text: "text-[#8a8d70]",  border: "border-white/10" },
 };
 
 // ─── SHARED UI ATOMS ──────────────────────────────────────────────────────────
 const SectionHeader = ({ title, count, action }) => (
   <div className="flex items-center gap-3 mb-4">
-    <h2 className="text-[#f0f2e8] text-base font-bold"
-      style={{ fontFamily: "'Syne', sans-serif", letterSpacing: "-0.02em" }}>
+    <h2
+      className="text-[#f0f2e8] text-base font-bold"
+      style={{ fontFamily: "'Syne', sans-serif", letterSpacing: "-0.02em" }}
+    >
       {title}
     </h2>
-    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/[0.06] text-[#6b7055] text-[0.65rem] font-semibold">
+    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/6 text-[#6b7055] text-[0.65rem] font-semibold">
       {count}
     </span>
-    <div className="flex-1 h-px bg-white/[0.05]" />
+    <div className="flex-1 h-px bg-white/5" />
     {action}
   </div>
 );
@@ -45,53 +65,66 @@ const EmptyState = ({ icon, message }) => (
 const SkeletonCards = ({ n = 3 }) => (
   <div className="flex flex-col gap-3">
     {Array.from({ length: n }).map((_, i) => (
-      <div key={i} className="flex items-center gap-4 bg-[#161810] border border-white/[0.07] rounded-2xl px-5 py-4">
-        <div className="skeleton-bar w-11 h-11 rounded-xl flex-shrink-0" />
+      <div
+        key={i}
+        className="flex items-center gap-4 bg-[#161810] border border-white/[0.07] rounded-2xl px-5 py-4"
+      >
+        <div className="skeleton-bar w-11 h-11 rounded-xl shrink-0" />
         <div className="flex-1 flex flex-col gap-2">
           <div className="skeleton-bar h-3.5 w-2/3 rounded" />
           <div className="skeleton-bar h-2.5 w-1/3 rounded" />
         </div>
-        <div className="skeleton-bar h-6 w-20 rounded-full flex-shrink-0" />
+        <div className="skeleton-bar h-6 w-20 rounded-full shrink-0" />
       </div>
     ))}
   </div>
 );
 
 // ─── FRIEND CARD ──────────────────────────────────────────────────────────────
-const FriendCard = ({ g }) => {
-  // FRIENDS LOGIC: swap getFriendName() with real name resolution
-  const name = getFriendName(g);
+/**
+ * FriendCard now receives `currentUserId` so it can resolve the other
+ * person's name correctly via resolveName().
+ */
+const FriendCard = ({ g, currentUserId }) => {
+  const name = resolveName(g, currentUserId);
 
   return (
-    <div className="flex items-center gap-4 bg-[#161810] border border-white/[0.07] rounded-2xl px-5 py-4 transition-all duration-200 hover:border-white/[0.13] hover:bg-[#1a1c14]">
-      {/* Avatar — round for friends, square for groups */}
-      <div className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-[#c8f135] border border-[#c8f135]/20"
-        style={{ background: "rgba(200,241,53,0.07)", fontFamily: "'Syne', sans-serif" }}>
+    <div className="flex items-center gap-4 bg-[#161810] border border-white/[0.07] rounded-2xl px-5 py-4 transition-all duration-200 hover:border-white/13 hover:bg-[#1a1c14]">
+      {/* Avatar — round for friends */}
+      <div
+        className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-[#c8f135] border border-[#c8f135]/20"
+        style={{ background: "rgba(200,241,53,0.07)", fontFamily: "'Syne', sans-serif" }}
+      >
         {getInitials(name)}
       </div>
 
       <div className="flex-1 min-w-0">
-        {/* FRIENDS LOGIC: replace with real friend name */}
-        <p className="text-[#f0f2e8] text-sm font-semibold truncate"
-          style={{ fontFamily: "'Syne', sans-serif", letterSpacing: "-0.01em" }}>
+        <p
+          className="text-[#f0f2e8] text-sm font-semibold truncate"
+          style={{ fontFamily: "'Syne', sans-serif", letterSpacing: "-0.01em" }}
+        >
           {name}
         </p>
-        {/* FRIENDS LOGIC: replace with real balance string e.g. "Owes you $12.00" */}
+        {/* TODO: replace "—" with real balance string e.g. "Owes you $12.00" */}
         <p className="text-[#4a4d3a] text-xs mt-0.5" style={{ fontFamily: "'Outfit', sans-serif" }}>
           Balance: <span className="text-[#6b7055]">—</span>
         </p>
       </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         <Link to={`/groups/${g.groupId._id}`}>
-          <button className="text-[0.72rem] font-semibold text-[#8a8d70] border border-white/10 px-3 py-1.5 rounded-full transition-all hover:text-[#f0f2e8] hover:border-white/25"
-            style={{ fontFamily: "'Outfit', sans-serif" }}>
+          <button
+            className="text-[0.72rem] font-semibold text-[#8a8d70] border border-white/10 px-3 py-1.5 rounded-full transition-all hover:text-[#f0f2e8] hover:border-white/25"
+            style={{ fontFamily: "'Outfit', sans-serif" }}
+          >
             View
           </button>
         </Link>
-        {/* FRIENDS LOGIC: wire up settle payment action */}
-        <button className="text-[0.72rem] font-bold text-[#0e0f0c] bg-[#c8f135] px-3 py-1.5 rounded-full transition-all hover:bg-[#a8d020] hover:shadow-[0_4px_16px_rgba(200,241,53,0.25)] hover:-translate-y-px"
-          style={{ fontFamily: "'Syne', sans-serif" }}>
+        {/* TODO: wire up settle payment action */}
+        <button
+          className="text-[0.72rem] font-bold text-[#0e0f0c] bg-[#c8f135] px-3 py-1.5 rounded-full transition-all hover:bg-[#a8d020] hover:shadow-[0_4px_16px_rgba(200,241,53,0.25)] hover:-translate-y-px"
+          style={{ fontFamily: "'Syne', sans-serif" }}
+        >
           Settle
         </button>
       </div>
@@ -107,37 +140,47 @@ const GroupCard = ({ g }) => {
   return (
     <div className="flex items-center gap-4 bg-[#161810] border border-white/[0.07] rounded-2xl px-5 py-4 transition-all duration-200 hover:border-white/13 hover:bg-[#1a1c14]">
       {/* Avatar — square for groups */}
-      <div className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold text-[#c8f135] border border-[#c8f135]/20"
-        style={{ background: "rgba(200,241,53,0.07)", fontFamily: "'Syne', sans-serif" }}>
+      <div
+        className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold text-[#c8f135] border border-[#c8f135]/20"
+        style={{ background: "rgba(200,241,53,0.07)", fontFamily: "'Syne', sans-serif" }}
+      >
         {getInitials(g.groupId.name)}
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-[#f0f2e8] text-sm font-semibold truncate"
-          style={{ fontFamily: "'Syne', sans-serif", letterSpacing: "-0.01em" }}>
+        <p
+          className="text-[#f0f2e8] text-sm font-semibold truncate"
+          style={{ fontFamily: "'Syne', sans-serif", letterSpacing: "-0.01em" }}
+        >
           {g.groupId.name}
         </p>
         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[0.65rem] font-semibold border ${colors.bg} ${colors.text} ${colors.border}`}
-            style={{ fontFamily: "'Outfit', sans-serif", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[0.65rem] font-semibold border ${colors.bg} ${colors.text} ${colors.border}`}
+            style={{ fontFamily: "'Outfit', sans-serif", letterSpacing: "0.04em", textTransform: "uppercase" }}
+          >
             {role}
           </span>
-          {/* GROUPS LOGIC: replace "—" with real amount owed */}
+          {/* TODO: replace "—" with real amount owed */}
           <span className="text-[#4a4d3a] text-xs" style={{ fontFamily: "'Outfit', sans-serif" }}>
             · Owed: <span className="text-[#6b7055]">—</span>
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
-        {/* GROUPS LOGIC: wire up settle action */}
-        <button className="text-[0.72rem] font-semibold text-[#8a8d70] border border-white/10 px-3 py-1.5 rounded-full transition-all hover:text-[#f0f2e8] hover:border-white/25"
-          style={{ fontFamily: "'Outfit', sans-serif" }}>
+      <div className="flex items-center gap-2 shrink-0">
+        {/* TODO: wire up settle action */}
+        <button
+          className="text-[0.72rem] font-semibold text-[#8a8d70] border border-white/10 px-3 py-1.5 rounded-full transition-all hover:text-[#f0f2e8] hover:border-white/25"
+          style={{ fontFamily: "'Outfit', sans-serif" }}
+        >
           Settle
         </button>
         <Link to={`/groups/${g.groupId._id}`}>
-          <button className="text-[0.72rem] font-bold text-[#0e0f0c] bg-[#c8f135] px-3 py-1.5 rounded-full transition-all hover:bg-[#a8d020] hover:shadow-[0_4px_16px_rgba(200,241,53,0.25)] hover:-translate-y-px"
-            style={{ fontFamily: "'Syne', sans-serif" }}>
+          <button
+            className="text-[0.72rem] font-bold text-[#0e0f0c] bg-[#c8f135] px-3 py-1.5 rounded-full transition-all hover:bg-[#a8d020] hover:shadow-[0_4px_16px_rgba(200,241,53,0.25)] hover:-translate-y-px"
+            style={{ fontFamily: "'Syne', sans-serif" }}
+          >
             Open →
           </button>
         </Link>
@@ -147,42 +190,80 @@ const GroupCard = ({ g }) => {
 };
 
 // ─── INVITE CARD ──────────────────────────────────────────────────────────────
-const InviteCard = ({ g }) => (
-  <div className="flex items-center gap-4 bg-[#161810] border border-white/[0.07] rounded-2xl px-5 py-4 transition-all duration-200 hover:border-white/[0.13]">
-    <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold text-[#8a8d70] border border-white/10"
-      style={{ background: "rgba(255,255,255,0.04)", fontFamily: "'Syne', sans-serif" }}>
-      {getInitials(g.groupId.name)}
-    </div>
+/**
+ * Handles both GROUP and FRIEND invitations.
+ * Receives currentUserId so friend invite names resolve correctly.
+ */
+const InviteCard = ({ g, currentUserId, handleAccept, handleReject }) => {
+  const name = resolveName(g, currentUserId);
 
-    <div className="flex-1 min-w-0">
-      <p className="text-[#f0f2e8] text-sm font-semibold truncate"
-        style={{ fontFamily: "'Syne', sans-serif", letterSpacing: "-0.01em" }}>
-        {g.groupId.name}
-      </p>
-      <p className="text-[#4a4d3a] text-xs mt-0.5" style={{ fontFamily: "'Outfit', sans-serif" }}>
-        You've been invited to join
-      </p>
-    </div>
+  return (
+    <div className="flex items-center gap-4 bg-[#161810] border border-white/[0.07] rounded-2xl px-5 py-4 transition-all duration-200 hover:border-white/13">
+      <div
+        className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold text-[#8a8d70] border border-white/10"
+        style={{ background: "rgba(255,255,255,0.04)", fontFamily: "'Syne', sans-serif" }}
+      >
+        {getInitials(name)}
+      </div>
 
-    <div className="flex items-center gap-2 flex-shrink-0">
-      {/* GROUPS LOGIC: wire up reject invitation */}
-      <button className="text-[0.72rem] font-semibold text-[#8a8d70] border border-white/10 px-3 py-1.5 rounded-full transition-all hover:text-red-400 hover:border-red-400/30"
-        style={{ fontFamily: "'Outfit', sans-serif" }}>
-        Reject
-      </button>
-      {/* GROUPS LOGIC: wire up accept/join invitation */}
-      <button className="text-[0.72rem] font-bold text-[#0e0f0c] bg-[#c8f135] px-3 py-1.5 rounded-full transition-all hover:bg-[#a8d020] hover:shadow-[0_4px_16px_rgba(200,241,53,0.25)] hover:-translate-y-px"
-        style={{ fontFamily: "'Syne', sans-serif" }}>
-        Join
-      </button>
+      <div className="flex-1 min-w-0">
+        <p
+          className="text-[#f0f2e8] text-sm font-semibold truncate"
+          style={{ fontFamily: "'Syne', sans-serif", letterSpacing: "-0.01em" }}
+        >
+          {name}
+        </p>
+        <p className="text-[#4a4d3a] text-xs mt-0.5" style={{ fontFamily: "'Outfit', sans-serif" }}>
+          {g.groupId.type === "FRIEND" ? "Wants to be friends" : "You've been invited to join"}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={() => handleReject(g.groupId._id)}
+          className="text-[0.72rem] font-semibold text-[#8a8d70] border border-white/10 px-3 py-1.5 rounded-full transition-all hover:text-red-400 hover:border-red-400/30"
+          style={{ fontFamily: "'Outfit', sans-serif" }}
+        >
+          Reject
+        </button>
+        <button
+          onClick={() => handleAccept(g.groupId._id)}
+          className="text-[0.72rem] font-bold text-[#0e0f0c] bg-[#c8f135] px-3 py-1.5 rounded-full transition-all hover:bg-[#a8d020] hover:shadow-[0_4px_16px_rgba(200,241,53,0.25)] hover:-translate-y-px"
+          style={{ fontFamily: "'Syne', sans-serif" }}
+        >
+          {g.groupId.type === "FRIEND" ? "Accept" : "Join"}
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 const Groups = () => {
+  const { user } = useAuth();
   const [group, setGroup] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const handleAccept = async (groupId) => {
+    try {
+      await AcceptInvite(groupId);
+      const refreshed = await UserGroups();
+      setGroup(refreshed);
+    } catch (err) {
+      console.error(err);
+      alert("Error joining group");
+    }
+  };
+
+  const handleReject = async (groupId) => {
+    try {
+      await RejectInvite(groupId);
+      setGroup((prev) => prev.filter((item) => item.groupId._id !== groupId));
+    } catch (err) {
+      console.error(err);
+      alert("Error rejecting invite");
+    }
+  };
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -198,13 +279,11 @@ const Groups = () => {
     fetchGroups();
   }, []);
 
-  // FRIENDS LOGIC: filter friend-type groups
-  const friendGroups  = group.filter((g) => g.status=== "JOINED" && g.groupId.type === "FRIEND");
-  const invitedGroups = group.filter((g) => g.status === "INVITED" && g.groupId.type === "GROUP");
-  const joinedGroups  = group.filter((g) => g.status === "JOINED"  && g.groupId.type === "GROUP");
-console.log("friends: ", friendGroups);
-
-  console.log("invited groups ", invitedGroups, "joined", joinedGroups);
+  // ── Derived lists ────────────────────────────────────────────────────────────
+  const friendGroups   = group.filter((g) => g.status === "JOINED"  && g.groupId.type === "FRIEND");
+  const joinedGroups   = group.filter((g) => g.status === "JOINED"  && g.groupId.type === "GROUP");
+  // FIX: include BOTH group and friend invitations in the invitations section
+  const invitedGroups  = group.filter((g) => g.status === "INVITED");
 
   return (
     <>
@@ -235,22 +314,28 @@ console.log("friends: ", friendGroups);
       <div className="min-h-screen bg-[#0e0f0c] px-4 py-10" style={{ fontFamily: "'Outfit', sans-serif" }}>
 
         {/* Dot grid bg */}
-        <div className="fixed inset-0 pointer-events-none z-0"
+        <div
+          className="fixed inset-0 pointer-events-none z-0"
           style={{
             backgroundImage: "radial-gradient(circle, rgba(200,241,53,0.04) 1px, transparent 1px)",
             backgroundSize: "28px 28px",
-          }} />
+          }}
+        />
 
         <div className="relative z-10 max-w-2xl mx-auto flex flex-col gap-10">
 
           {/* Page header */}
           <div className="grp-fade-1">
-            <p className="text-[0.68rem] font-semibold tracking-[0.18em] uppercase text-[#c8f135] mb-1"
-              style={{ fontFamily: "'Outfit', sans-serif" }}>
+            <p
+              className="text-[0.68rem] font-semibold tracking-[0.18em] uppercase text-[#c8f135] mb-1"
+              style={{ fontFamily: "'Outfit', sans-serif" }}
+            >
               Your workspace
             </p>
-            <h1 className="text-[#f0f2e8] text-3xl font-extrabold leading-tight"
-              style={{ fontFamily: "'Syne', sans-serif", letterSpacing: "-0.04em" }}>
+            <h1
+              className="text-[#f0f2e8] text-3xl font-extrabold leading-tight"
+              style={{ fontFamily: "'Syne', sans-serif", letterSpacing: "-0.04em" }}
+            >
               Groups & Friends
             </h1>
             <p className="text-[#4a4d3a] text-sm mt-1" style={{ fontFamily: "'Outfit', sans-serif" }}>
@@ -262,16 +347,17 @@ console.log("friends: ", friendGroups);
             <SkeletonCards n={4} />
           ) : (
             <>
-              {/* ── FRIENDS ───────────────────────────────────────────────── */}
+              {/* ── FRIENDS ─────────────────────────────────────────────── */}
               <div className="grp-fade-2">
                 <SectionHeader
                   title="Friends"
                   count={friendGroups.length}
                   action={
-                    // FRIENDS LOGIC: wire up Add Friend modal / action
+                    // TODO: wire up Add Friend modal / action
                     <button
                       className="inline-flex items-center gap-1 text-[0.72rem] font-bold text-[#0e0f0c] bg-[#c8f135] px-3.5 py-1.5 rounded-full transition-all hover:bg-[#a8d020] hover:shadow-[0_4px_16px_rgba(200,241,53,0.25)] hover:-translate-y-px"
-                      style={{ fontFamily: "'Syne', sans-serif" }}>
+                      style={{ fontFamily: "'Syne', sans-serif" }}
+                    >
                       + Add Friend
                     </button>
                   }
@@ -280,15 +366,15 @@ console.log("friends: ", friendGroups);
                   <EmptyState icon="🤝" message="No friends yet. Add someone to start splitting!" />
                 ) : (
                   <div className="flex flex-col gap-2.5">
-                    {/* FRIENDS LOGIC: FriendCard uses getFriendName() — replace with real resolver */}
                     {friendGroups.map((g) => (
-                      <FriendCard key={g.groupId._id} g={g} />
+                      // FIX: pass currentUserId so FriendCard resolves the correct name
+                      <FriendCard key={g.groupId._id} g={g} currentUserId={user?._id} />
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* ── JOINED GROUPS ─────────────────────────────────────────── */}
+              {/* ── JOINED GROUPS ───────────────────────────────────────── */}
               <div className="grp-fade-3">
                 <SectionHeader title="Joined Groups" count={joinedGroups.length} />
                 {joinedGroups.length === 0 ? (
@@ -302,7 +388,7 @@ console.log("friends: ", friendGroups);
                 )}
               </div>
 
-              {/* ── INVITATIONS ───────────────────────────────────────────── */}
+              {/* ── INVITATIONS ─────────────────────────────────────────── */}
               <div className="grp-fade-4">
                 <SectionHeader title="Invitations" count={invitedGroups.length} />
                 {invitedGroups.length === 0 ? (
@@ -310,7 +396,14 @@ console.log("friends: ", friendGroups);
                 ) : (
                   <div className="flex flex-col gap-2.5">
                     {invitedGroups.map((g) => (
-                      <InviteCard key={g.groupId._id} g={g} />
+                      // FIX: pass currentUserId; InviteCard now handles both FRIEND and GROUP types
+                      <InviteCard
+                        key={g.groupId._id}
+                        g={g}
+                        currentUserId={user?._id}
+                        handleAccept={handleAccept}
+                        handleReject={handleReject}
+                      />
                     ))}
                   </div>
                 )}

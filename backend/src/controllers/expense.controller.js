@@ -1,61 +1,63 @@
-// POST     /expenses
-// GET      /expenses/
-// GET      /expenses/:expenseId
-// PATCH    /expenses/:expenseId
-// DELETE   /expenses/:expenseId
-// POST     /expenses/:expenseId/comments
-
 import { expenseService } from "../services/expense.service.js";
-import { idValidate } from "../validators/common.validator.js";
 import { expenseValidator } from "../validators/expense.validator.js";
 
 export const postExpense = async (req, res) => {
   try {
     const result = expenseValidator.postExpense.safeParse(req.body);
-    console.log(req.user);
-    
     if (!result.success) {
-      return res
-        .status(400)
-        .json({ errors: result.error.flatten().fieldErrors });
+      return res.status(400).json({ errors: result.error.flatten().fieldErrors });
     }
     const validatedData = result.data;
-    const expense = expenseService.calculateSplit(validatedData.paidBy, validatedData.members, validatedData.options)
-    const expensed = await expenseService.postExpense(req.user.userId, req.body, expense.withBalance);
+    const splitData = expenseService.calculateSplit(validatedData.paidBy, validatedData.members, validatedData.options);
+    const expense = await expenseService.postExpense(req.user.userId, req.body, splitData.withBalance);
 
-console.log("expense: ", expense);
-return res.status(200).json({success: true, expense})
-
-
-
-
-
-
-
-
-
-
-
-
-    // const expense = await expenseService.postExpense(req.user.userId);
+    return res.status(201).json({ success: true, data: expense });
   } catch (error) {
-    res
-      .status(error.statusCode || 500)
-      .json({ success: false, error: error.message });
+    res.status(error.statusCode || 500).json({ success: false, message: error.message });
+  }
+};
+
+export const getExpenses = async (req, res) => {
+  try {
+    const expenses = await expenseService.getExpenses(req.user.userId);
+    res.status(200).json({ success: true, data: expenses });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ success: false, message: error.message });
+  }
+};
+
+export const getExpenseById = async (req, res) => {
+  try {
+    const expense = await expenseService.getExpense(req.user.userId, req.params.expenseId);
+    res.status(200).json({ success: true, data: expense });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ success: false, message: error.message });
+  }
+};
+
+export const patchExpense = async (req, res) => {
+  try {
+    const expense = await expenseService.patchExpense(req.user.userId, req.params.expenseId, req.body);
+    res.status(200).json({ success: true, data: expense });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ success: false, message: error.message });
   }
 };
 
 export const deleteExpense = async (req, res) => {
   try {
-  const user = req.user.userId;
-  const group = req.body.groupId;
-  const expense = req.params.expenseId;
-  const result = await expenseService.deleteExpense(user, group, expense);
-  res.status(200).json({success: true, message: "expense deleted", data: result})
+    await expenseService.deleteExpense(req.user.userId, req.params.expenseId);
+    res.status(200).json({ success: true, message: "Expense deleted" });
   } catch (error) {
-    res.status(500 || error.statusCode).send(error.message || "Server error");
+    res.status(error.statusCode || 500).json({ success: false, message: error.message });
   }
-  
-}
+};
 
-
+export const postComment = async (req, res) => {
+  try {
+    const comment = await expenseService.postComment(req.user.userId, req.params.expenseId, req.body);
+    res.status(201).json({ success: true, data: comment });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ success: false, message: error.message });
+  }
+};

@@ -4,13 +4,17 @@ import { objectId } from "./common.validator.js";
 
 export const memberSchema = z.object({
     user: objectId,
-    amountOwed: z.number().min(0).default(0),
+    amountOwed: z.number().min(0).default(0).refine((val) => Number.isInteger(val * 100), {
+        message: "Amount can have maximum 2 decimal places"
+    }).transform((val) => Math.round(val * 100)),
     weight: z.number().min(0).default(0),
 })
 
 export const paidBy = z.object({
     user: objectId,
-    amount: z.number().min(1)
+    amount: z.number().min(0.01).refine((val) => Number.isInteger(val * 100), {
+        message: "Amount can have maximum 2 decimal places"
+    }).transform((val) => Math.round(val * 100))
 })
 
 const postExpense = z.object({

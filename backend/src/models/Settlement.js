@@ -10,19 +10,30 @@ const settlementSchema = new Schema(
       required: true,
       index: true,
     },
-    sender: {
+    from: {
       type: Schema.Types.ObjectId,
-      ref: "Group",
+      ref: "User",
       required: true,
     },
-    message: {
-      type: String,
-      trim: true,
+    to: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    status: {
+      type: String,
+      enum: ["PENDING", "COMPLETED"],
+      default: "COMPLETED",
+    }
   },
   { timestamps: true },
 );
 
-const Comment = mongoose.model("Comment", commentSchema);
+const Settlement = mongoose.model("Settlement", settlementSchema);
 
-export default Comment;
+export default Settlement;

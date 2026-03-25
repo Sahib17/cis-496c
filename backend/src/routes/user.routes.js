@@ -7,6 +7,7 @@ import {
   getUserById,
   getUserByMail,
   patchUser,
+  getBalanceSummary
 } from "../controllers/user.controller.js";
 import { isLoggedIn } from "../middleware/auth.middleware.js";
 import imagekit from "../utils/imagekit.js";
@@ -27,6 +28,8 @@ router.patch("/", isLoggedIn, patchUser);
 
 // DELETE (actually update) logged in user
 router.patch("/delete", isLoggedIn, deleteUser);
+
+router.get("/balance-summary", isLoggedIn, getBalanceSummary);
 
 router.post("/image", isLoggedIn, (req, res) => {
   const authParams = imagekit.getAuthenticationParameters();

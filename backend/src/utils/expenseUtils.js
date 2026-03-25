@@ -1,9 +1,3 @@
-// ******HELPER FUNCTIONS******
-/**
- * 
- * @param {*} membersWithPaid 
- * @returns
- */
 export const attachBalances = (withPaid) => {
     return withPaid.map((member) => ({
     ...member,
@@ -12,18 +6,32 @@ export const attachBalances = (withPaid) => {
 }
 
 export const attachPayments = (withOwed, paidBy) => {
-    return withOwed.map((member) => {
-    const paidEntry = paidBy.find(
-      (p) => p.user.toString() === member.user.toString(),
-    );
+  return withOwed.map((member) => {
 
-    const amountPaid = paidEntry ? paidEntry.amount : 0;
+    if (!member.user) {
+      console.log("BROKEN MEMBER", member)
+      return { ...member, amountPaid: 0 }
+    }
+
+    const memberId =
+      typeof member.user === "object"
+        ? member.user._id?.toString() || member.user.toString()
+        : member.user.toString()
+
+    const paidEntry = paidBy.find((p) => {
+      const payerId =
+        typeof p.user === "object"
+          ? p.user._id?.toString() || p.user.toString()
+          : p.user.toString()
+
+      return payerId === memberId
+    })
 
     return {
       ...member,
-      amountPaid,
-    };
-  });
+      amountPaid: paidEntry?.amount ?? 0
+    }
+  })
 }
 
 export const distributeRemainder = (remainder, membersWithBase) => {

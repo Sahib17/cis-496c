@@ -21,6 +21,15 @@ export const getUserById = async (req, res) => {
   }
 };
 
+export const getBalanceSummary = async (req, res) => {
+  try {
+    const summary = await userService.getUserBalanceSummary(req.user.userId);
+    return res.status(200).json({ success: true, data: summary });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getUserByMail = async (req, res) => {
   try {
     const user = await userService.getUserByMail(

@@ -5,6 +5,7 @@ import Group from "../models/Group.js";
 import User from "../models/User.js";
 import GroupMember from "../models/GroupMember.js";
 import Comment from "../models/Comment.js";
+import { expenseService } from "./expense.service.js";
 
 // / POST   /groups
 // / GET    /groups
@@ -70,21 +71,13 @@ const getGroups = async (userId) => {
 };
 
 const getGroup = async (userId, groupId) => {
-  try {
-    const result = await Group.findOne({
-      _id: groupId,
-      "members.user": userId,
-    }).lean();
-    if (!result) {
-      const error = new Error("Group not found");
-      error.statusCode = 404;
-      throw error;
-    }
-    return result;
-  } catch (error) {
-    logger.error(error);
-    throw error;
-  }
+  const isMember = await GroupMember.findOne({ groupId, memberId: userId, status: "JOINED" });
+  if (!isMember) throw { statusCode: 401, message: "Unauthorized access to group" };
+
+  const group = await Group.findById(groupId).lean();
+  if (!group) throw { statusCode: 404, message: "Group not found" };
+  
+  return group;
 };
 
 const patchGroup = async (userId, groupId, body) => {
@@ -127,29 +120,10 @@ const getGroupMembers = async (userId, groupId) => {
 }
 
 const getGroupExpenses = async (userId, groupId) => {
-  try {
-    // check member if he is a part of the group
-    const isMember = await GroupMember.findOne({groupId, memberId: userId, status: "JOINED"});
-    if(isMember.length === 0){
-      const error = new Error("Unauthorized");
-      error.statusCode = 401;
-      throw error;
-    }
+  const isMember = await GroupMember.findOne({ groupId, memberId: userId, status: "JOINED" });
+  if (!isMember) throw { statusCode: 401, message: "Unauthorized" };
 
-    // get members of the group
-    const members = await GroupMember.find({groupId: groupId, status: "JOINED"});
-    if(!members){
-      const error = new Error("No members found, add some");
-      error.statusCode = 404;
-      throw error;
-    }
-    // await session.commitTransaction();
-    return members;
-   } catch (error) {
-      // await session.abortTransaction();
-      logger.error(error);
-      throw error;
-    }
+  return await Expense.find({ groupId, status: "ACTIVE" });
 };
 
 const deleteGroup = async (userId, groupId) => {
@@ -202,44 +176,27 @@ const deleteGroup = async (userId, groupId) => {
 };
 
 const postMembers = async (requesterId, groupId, body) => {
-  try {
-    const newMember = {
-      user: userId,
-      amountOwed: 0,
-    };
-    const result = await Group.findOneAndUpdate(
-      {
-        _id: groupId,
-        "members.user": userId,
-        "members.user": { $ne: body.userId },
-      },
-      {
-        $push: { members: newMember },
-      },
-    );
-    if (!result) {
-      const error = new Error("Group not found");
-      error.statusCode = 404;
-      throw error;
-    }
-    return result;
-  } catch (error) {
-    throw error;
-  }
+  // Check if requester is Admin
+  const requester = await GroupMember.findOne({ groupId, memberId: requesterId, role: "ADMIN" });
+  if (!requester) throw { statusCode: 401, message: "Only Admins can add members" };
+
+  return await GroupMember.create({
+    groupId,
+    memberId: body.userId,
+    status: "INVITED",
+    role: "MEMBER"
+  });
 };
 
-const removeMember = async (userId, groupId, targetId) => {
-  try {
-    const result = await Group.findOneAndUpdate({
-      _id: groupId,
-      "members.user": requesterId,
-      "members.user": targetId,
-    });
-  } catch (error) {
-    res
-      .status(error.statusCode || 500)
-      .json({ success: false, message: error.message });
-  }
+const removeMember = async (requesterId, groupId, targetId) => {
+  const requester = await GroupMember.findOne({ groupId, memberId: requesterId, role: "ADMIN" });
+  if (!requester) throw { statusCode: 401, message: "Only Admins can remove members" };
+
+  return await GroupMember.findOneAndUpdate(
+    { groupId, memberId: targetId },
+    { status: "REMOVED" },
+    { new: true }
+  );
 };
 
 const acceptGroupInvitation = async (userId, groupId) => {
