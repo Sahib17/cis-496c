@@ -8,8 +8,10 @@
 
 import express from "express";
 import { isLoggedIn } from "../middleware/auth.middleware.js";
-import { acceptGroupInvitation, createGroup, deleteGroup, getGroup, getGroupExpenses, getGroupMembers, getGroups, patchGroup, postMembers, rejectGroupInvitation, removeMember } from "../controllers/group.controller.js";
+import { acceptGroupInvitation, createGroup, deleteGroup, getDashboard, getGroup, getGroupExpenses, getGroupMembers, getGroups, patchGroup, postMembers, rejectGroupInvitation, removeMember } from "../controllers/group.controller.js";
 const router = express.Router();
+
+router.get('/dashboard', isLoggedIn, getDashboard);
 
 router.post('/', isLoggedIn, createGroup);
 
@@ -28,7 +30,7 @@ router.get('/:groupId/members', isLoggedIn, getGroupMembers)
 
 router.post('/:groupId/members', isLoggedIn, postMembers);
 
-router.delete('/:groupId/members/:userId', isLoggedIn, removeMember);
+router.patch('/:groupId/members/:userId', isLoggedIn, removeMember);
 
 router.patch('/:groupId/acceptInvitation', isLoggedIn, acceptGroupInvitation);
 

@@ -21,9 +21,10 @@ export const GetGroup = async (groupId) => {
   };
 }
 
+// AFTER (simpler)
 export const GetExpenses = async (groupId) => {
-  const response = await axios.get(`${API_URL}/groups/${groupId}/expenses`, { withCredentials: true });
-  return response.data;
+  const res = await axios.get(`${import.meta.env.VITE_API_URL}/groups/${groupId}/expenses`, {withCredentials: true});
+  return res.data.data; // returns the expenses array directly
 }
 
 export const AcceptInvite = async (groupId) => {

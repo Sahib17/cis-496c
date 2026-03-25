@@ -18,7 +18,7 @@ const SkeletonExpenses = () => (
   <div className="flex flex-col gap-2.5">
     {[1, 2, 3, 4].map((i) => (
       <div key={i} className="flex items-center gap-4 bg-[#161810] border border-white/[0.07] rounded-2xl px-5 py-4">
-        <div className="skeleton-bar w-10 h-10 rounded-xl flex-shrink-0" />
+        <div className="skeleton-bar w-10 h-10 rounded-xl shrink-0" />
         <div className="flex-1 flex flex-col gap-2">
           <div className="skeleton-bar h-3.5 w-1/2 rounded" />
           <div className="skeleton-bar h-2.5 w-1/3 rounded" />
@@ -38,8 +38,7 @@ const ExpenseCard = ({ m, groupId }) => {
     day: "numeric", month: "short", year: "numeric",
   });
 
-  const totalCents   = m.paidBy?.reduce((sum, p) => sum + p.amount, 0) ?? 0;
-  const totalDollars = (totalCents / 100).toFixed(2);
+  const totalDollars = (m.paidBy?.reduce((sum, p) => sum + p.amount, 0) ?? 0).toFixed(2);
   const paidByNames  = m.paidBy?.map((p) => p.user?.name).filter(Boolean).join(", ") || "—";
   const initials     = m.name.slice(0, 2).toUpperCase();
   const split        = getSplitMeta(m.options);
@@ -52,7 +51,7 @@ const ExpenseCard = ({ m, groupId }) => {
     >
       {/* Avatar */}
       <div
-        className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-[#c8f135] border border-[#c8f135]/20"
+        className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-[#c8f135] border border-[#c8f135]/20"
         style={{ background: "rgba(200,241,53,0.08)", fontFamily: "'Syne', sans-serif" }}
       >
         {initials}
@@ -73,14 +72,14 @@ const ExpenseCard = ({ m, groupId }) => {
           >
             {split.label}
           </span>
-          <span className="text-[#4a4d3a] text-xs truncate max-w-[200px]" style={{ fontFamily: "'Outfit', sans-serif" }}>
+          <span className="text-[#4a4d3a] text-xs truncate max-w-50" style={{ fontFamily: "'Outfit', sans-serif" }}>
             paid by {paidByNames}
           </span>
         </div>
       </div>
 
       {/* Amount + date */}
-      <div className="flex-shrink-0 flex flex-col items-end gap-1">
+      <div className="shrink-0 flex flex-col items-end gap-1">
         <span
           className="text-[#f0f2e8] text-sm font-bold"
           style={{ fontFamily: "'Syne', sans-serif", letterSpacing: "-0.02em" }}
@@ -93,7 +92,7 @@ const ExpenseCard = ({ m, groupId }) => {
       </div>
 
       {/* Arrow */}
-      <span className="flex-shrink-0 text-[#3d4030] text-sm group-hover:text-[#6b7055] transition-colors ml-1">
+      <span className="shrink-0 text-[#3d4030] text-sm group-hover:text-[#6b7055] transition-colors ml-1">
         →
       </span>
     </Link>
@@ -127,14 +126,14 @@ const Expenses = () => {
   }, []);
 
   useEffect(() => {
-  const getGroupExpenses = async () => {
-    const response = await GetExpenses(groupId);
-    console.log("axios", response);
-    setExpenses(response.data);  // ✅ was response.expenses.data
-    setLoading(false);
-  };
-  if (groupId) getGroupExpenses();
-}, [groupId]);
+    const getGroupExpenses = async () => {
+      const response = await GetExpenses(groupId);
+      console.log("expenses", response);
+      setExpenses(Array.isArray(response) ? response : []);
+      setLoading(false);
+    };
+    if (groupId) getGroupExpenses();
+  }, [groupId]);
 
   useEffect(() => {
     console.log("updated expenses:", expenses);

@@ -2,6 +2,8 @@ import { logger } from "../config/logger.js";
 import { groupService } from "../services/group.service.js";
 import { idValidate } from "../validators/common.validator.js";
 import { groupValidator } from "../validators/group.validator.js";
+import Expense from "../models/Expense.js";
+import GroupMember from "../models/GroupMember.js";
 
 // \ POST     /groups
 // \ GET      /groups
@@ -40,6 +42,15 @@ export const createGroup = async (req, res) => {
 
 export const getGroupExpenses = async (req, res) => {
   try {
+    // const id = req.params.groupId;
+    // const validate = idValidate.safeParse(id);
+    // if (!validate.success) {
+    //   return res
+    //     .status(400)
+    //     .json({ success: false, message: validate.error.issues[0].message });
+    // }
+    // console.log(validate);
+    
     const data = await groupService.getGroupExpenses(req.user.userId, req.params.groupId)
     res.status(200).json({success: true, message: "Expenses found", data: data})
   } catch (error) {
@@ -143,7 +154,6 @@ export const removeMember = async (req, res) => {
   try {
     const result = await groupService.removeMember(
       req.user.userId,
-      req.params.groupId,
       req.params.userId,
     );
     res.status(200).json({ success: true, result });
@@ -190,5 +200,63 @@ export const rejectGroupInvitation = async (req, res) => {
     res
       .status(error.statusCode || 500)
       .json({ success: false, message: error.message || "Server error" });
+  }
+};
+export const getDashboard = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    // Get all groups the user has joined
+    const memberships = await GroupMember.find({ memberId: userId, status: "JOINED" });
+    const groupIds = memberships.map((m) => m.groupId);
+
+    // Fetch all active expenses in those groups, populating user refs so
+    // JS-level .find() comparisons work reliably (no ObjectId vs string mismatch)
+    const expenses = await Expense.find({
+      groupId: { $in: groupIds },
+      status: "ACTIVE",
+    })
+      .populate("paidBy.user", "_id")
+      .populate("members.user", "_id")
+      .lean();
+
+    let totalOwed = 0; // others owe me
+    let totalOwe  = 0; // I owe others
+
+    for (const expense of expenses) {
+      // Check if this user is a payer or a member
+      const myMember = expense.members?.find(
+        (m) => m.user?._id?.toString() === userId.toString()
+      );
+      const myPaidEntry = expense.paidBy?.find(
+        (p) => p.user?._id?.toString() === userId.toString()
+      );
+
+      // Skip expenses that don't involve this user at all
+      if (!myMember && !myPaidEntry) continue;
+
+      const iActuallyPaid = myPaidEntry ? myPaidEntry.amount : 0;
+      const iOwe          = myMember   ? myMember.amountOwed  : 0;
+      const balance       = iActuallyPaid - iOwe;
+
+      if (balance > 0) {
+        totalOwed += balance; // I paid more than my share → others owe me
+      } else if (balance < 0) {
+        totalOwe  += -balance; // I paid less than my share → I owe others
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        youAreOwed: +totalOwed.toFixed(2),
+        youOwe:     +totalOwe.toFixed(2),
+      },
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Server error",
+    });
   }
 };

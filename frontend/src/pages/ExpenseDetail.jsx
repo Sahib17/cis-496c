@@ -137,7 +137,7 @@ const ExpenseDetail = () => {
                   className="text-[#f0f2e8] text-3xl font-extrabold"
                   style={{ fontFamily: "'Syne', sans-serif", letterSpacing: "-0.04em" }}
                 >
-                  ${totalDollars}
+                  ${(totalDollars * 100).toFixed(2)}
                 </p>
                 <span
                   className={`inline-flex items-center mt-1 px-2.5 py-0.5 rounded-full text-[0.62rem] font-semibold border ${split.bg} ${split.text} ${split.border}`}
@@ -167,7 +167,7 @@ const ExpenseDetail = () => {
                     </span>
                   </div>
                   <span className="text-[#c8f135] text-sm font-bold" style={{ fontFamily: "'Syne', sans-serif" }}>
-                    ${(p.amount / 100).toFixed(2)}
+                    ${(p.amount).toFixed(2)}
                   </span>
                 </div>
               ))}

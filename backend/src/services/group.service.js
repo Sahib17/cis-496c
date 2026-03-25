@@ -49,7 +49,7 @@ const createGroup = async (userId, body) => {
     const groupMember = await GroupMember.insertMany(members, { session });
     await session.commitTransaction();
     session.endSession();
-    return { group, groupMember };
+   return { group, groupMember };
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -106,7 +106,8 @@ const getGroupMembers = async (userId, groupId) => {
       error.statusCode = 401;
       throw error;
     }
-    const members = await GroupMember.find({groupId: groupId, status: {$in: ["JOINED", "INVITED"]}});
+    const members = await GroupMember.find({groupId, status: {$in: ["JOINED","INVITED"]}})
+  .populate("memberId", "name email");
     if(!members){
       const error = new Error("No members found, add some");
       error.statusCode = 404;
@@ -120,13 +121,23 @@ const getGroupMembers = async (userId, groupId) => {
 }
 
 const getGroupExpenses = async (userId, groupId) => {
-  const isMember = await GroupMember.findOne({ groupId, memberId: userId, status: "JOINED" });
-  if (!isMember) throw { statusCode: 401, message: "Unauthorized" };
-
-  return await Expense.find({ groupId, status: "ACTIVE" })
-    .populate("paidBy.user", "name email")
-    .populate("members.user", "name email")
-    .populate("createdBy", "name email");
+  try {
+    const isMember = await GroupMember.findOne({groupId, memberId: userId, status: "JOINED"});
+    if (!isMember) {   // ← also fixes Bug 6: was isMember.length === 0 which never throws
+      const error = new Error("Unauthorized");
+      error.statusCode = 401;
+      throw error;
+    }
+    const expenses = await Expense.find({groupId, status: "ACTIVE"})
+      .populate("paidBy.user", "name email")
+      .populate("members.user", "name email")
+      .populate("createdBy", "name email")
+      .sort({ createdAt: -1 });
+    return expenses;
+  } catch (error) {
+    logger.error(error);
+    throw error;
+  }
 };
 
 const deleteGroup = async (userId, groupId) => {

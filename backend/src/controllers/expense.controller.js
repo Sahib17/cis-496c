@@ -8,10 +8,17 @@ export const postExpense = async (req, res) => {
       return res.status(400).json({ errors: result.error.flatten().fieldErrors });
     }
     const validatedData = result.data;
-    const splitData = expenseService.calculateSplit(validatedData.paidBy, validatedData.members, validatedData.options);
-    const expense = await expenseService.postExpense(req.user.userId, req.body, splitData.withBalance);
+    const expense = expenseService.calculateSplit(validatedData.paidBy, validatedData.members, validatedData.options);
 
-    return res.status(201).json({ success: true, data: expense });
+// Map withBalance to clean DB shape — don't save computed fields like amountPaid/balance
+const cleanMembers = expense.withBalance.map(m => ({
+  user: m.user,
+  amountOwed: m.amountOwed,
+  weight: m.weight ?? 1,
+}));
+
+const expensed = await expenseService.postExpense(req.user.userId, req.body, cleanMembers);
+return res.status(201).json({ success: true, data: expensed });
   } catch (error) {
     res.status(error.statusCode || 500).json({ success: false, message: error.message });
   }
