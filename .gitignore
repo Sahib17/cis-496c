@@ -63,3 +63,5 @@ temp/
 # Optional: MongoDB local data
 # ========================
 data/
+backend/pnpm-lock.yaml
+frontend/pnpm-lock.yaml
