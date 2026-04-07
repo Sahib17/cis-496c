@@ -33,3 +33,4 @@ Thumbs.db
 
 # mongodb memory server
 .mongodb-memory-server/
+pnpm-lock.yaml
