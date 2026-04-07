@@ -44,6 +44,157 @@ const mockAuth = () => {
 const authCookie = 'token=faketoken';
 
 
+describe('Group Controller — POST /groups', () => {
 
+  beforeEach(() => {
+    mockAuth();
+    jest.clearAllMocks();
+  });
+
+  test('201 — creates group with valid body', async () => {
+    groupService.createGroup.mockResolvedValue({
+      _id: 'group123',
+      name: 'Trip to Vegas',
+      type: 'GROUP',
+    });
+
+    const res = await request(app)
+      .post('/groups')
+      .set('Cookie', authCookie)
+      .send({
+        name: 'Trip to Vegas',
+        type: 'GROUP',
+        members: ['64f1a2b3c4d5e6f7a8b9c0d1', '64f1a2b3c4d5e6f7a8b9c0d2'],
+      });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(groupService.createGroup).toHaveBeenCalledTimes(1);
+  });
+
+  test('400 — fails when name is missing', async () => {
+    const res = await request(app)
+      .post('/groups')
+      .set('Cookie', authCookie)
+      .send({
+        type: 'GROUP',
+        members: ['64f1a2b3c4d5e6f7a8b9c0d1'],
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    // Service should NOT be called if validation fails
+    expect(groupService.createGroup).not.toHaveBeenCalled();
+  });
+
+  test('400 — fails when FRIEND group has 2 members', async () => {
+    const res = await request(app)
+      .post('/groups')
+      .set('Cookie', authCookie)
+      .send({
+        name: 'My Friend',
+        type: 'FRIEND',
+        members: ['64f1a2b3c4d5e6f7a8b9c0d1', '64f1a2b3c4d5e6f7a8b9c0d2'],
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  test('401 — fails without auth cookie', async () => {
+    token.verify.mockImplementation(() => { throw new Error('No token'); });
+
+    const res = await request(app)
+      .post('/groups')
+      .send({ name: 'Test', type: 'GROUP', members: [] });
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  test('500 — handles service throwing error', async () => {
+    groupService.createGroup.mockRejectedValue(new Error('DB Error'));
+
+    const res = await request(app)
+      .post('/groups')
+      .set('Cookie', authCookie)
+      .send({
+        name: 'Trip',
+        type: 'GROUP',
+        members: ['64f1a2b3c4d5e6f7a8b9c0d1'],
+      });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toBe('Failed to create group');
+  });
+});
+
+
+describe('Group Controller — GET /groups', () => {
+
+  beforeEach(() => {
+    mockAuth();
+    jest.clearAllMocks();
+  });
+
+  test('200 — returns list of groups', async () => {
+    groupService.getGroups.mockResolvedValue([
+      { _id: 'g1', name: 'Group 1' },
+      { _id: 'g2', name: 'Group 2' },
+    ]);
+
+    const res = await request(app)
+      .get('/groups')
+      .set('Cookie', authCookie);
+
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBe(2);
+  });
+
+  test('401 — fails without auth', async () => {
+    token.verify.mockImplementation(() => { throw new Error('Unauthorized'); });
+
+    const res = await request(app).get('/groups');
+    expect(res.statusCode).toBe(401);
+  });
+});
+
+
+describe('Group Controller — GET /groups/:groupId', () => {
+
+  beforeEach(() => {
+    mockAuth();
+    jest.clearAllMocks();
+  });
+
+  test('200 — returns group when found', async () => {
+    groupService.getGroup.mockResolvedValue({
+      _id: 'group123',
+      name: 'My Group',
+    });
+
+    const res = await request(app)
+      .get('/groups/group123')
+      .set('Cookie', authCookie);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data._id).toBe('group123');
+  });
+
+  test('404 — returns error when group not found', async () => {
+    const err = new Error('Group not found');
+    err.statusCode = 404;
+    groupService.getGroup.mockRejectedValue(err);
+
+    const res = await request(app)
+      .get('/groups/nonexistent')
+      .set('Cookie', authCookie);
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.success).toBe(false);
+  });
+});
 
 
