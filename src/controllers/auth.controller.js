@@ -13,8 +13,8 @@ export const register = async (req, res) => {
         .json({ success: false, message: result.error.issues[0].message });
     }
     const validatedData = result.data;
-    const hashedPassword = await password.hash(validatedData.password);
-    validatedData.password = hashedPassword;
+    // const hashedPassword = await password.hash(validatedData.password);
+    // validatedData.password = hashedPassword;
     const user = await authService.register(validatedData);
     const jwtToken = token.create(user.email, user._id);
     res.cookie("token", jwtToken, {

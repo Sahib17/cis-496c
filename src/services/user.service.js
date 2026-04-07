@@ -2,9 +2,9 @@ import User from "../models/User.js";
 
 const getUserById = async (requesterId, targetId) => {
   try {
-    const user = User.findOne({
+    const user = await User.findOne({          // ← await
       _id: targetId,
-      blocklist: { $ne: requesterId },
+      blocklist: { $nin: [requesterId] },
     }).select("-password");
     return user;
   } catch (err) {
@@ -19,10 +19,10 @@ const getUserById = async (requesterId, targetId) => {
 
 const getUserByMail = async (requesterId, targetMail) => {
   try {
-    const user = User.findOne({
+    const user = await User.findOne({          // ← await
       email: targetMail,
-      blocklist: { $ne: requesterId }, // $ne = not equal
-    }).select("-password"); // return everything except password
+      blocklist: { $nin: [requesterId] },
+    }).select("-password");
     return user;
   } catch (err) {
     if (err.status === 404) {
@@ -39,20 +39,18 @@ const patchUser = async (userId, data) => {
     console.log(`User Id: ${userId}`);
     const user = await User.findByIdAndUpdate(
       userId,
-      {
-        ...data,
-      },
+      { ...data },
       { returnDocument: "after", runValidators: true },
     );
-    console.log(user)
+    console.log(user);
     return user;
   } catch (error) {
-    if (err.status === 404) {
-      const error = new Error("User not found");
-      error.statusCode = 404;
-      throw error;
+    if (error.status === 404) {
+      const err = new Error("User not found");
+      err.statusCode = 404;
+      throw err;
     }
-    throw err;
+    throw error;
   }
 };
 
@@ -63,7 +61,6 @@ const deleteUser = async (userId) => {
         _id: userId,
         owe: {
           $elemMatch: {
-            // $elemMatch finds user whose owe array contains at least one entry with amount != 0
             amount: { $ne: 0 },
           },
         },

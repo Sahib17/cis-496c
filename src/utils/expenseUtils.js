@@ -7,7 +7,8 @@ export const attachBalances = (withPaid) => {
 
 export const attachPayments = (withOwed, paidBy) => {
   return withOwed.map((member) => {
-
+    console.log("matching member.user:", member.user, typeof member.user);
+    console.log("paidBy entries:", paidBy.map(p => [p.user, typeof p.user]));
     if (!member.user) {
       console.log("BROKEN MEMBER", member)
       return { ...member, amountPaid: 0 }
@@ -50,10 +51,15 @@ export const distributeRemainder = (remainder, membersWithBase) => {
 
 export const settlement = (creditors, debtors) => {
   const settlements = [];
-  for (const debtor of debtors) {
+  
+  // ← work on copies so withBalance isn't mutated
+  const creditorsCopy = creditors.map((c) => ({ ...c }));
+  const debtorsCopy = debtors.map((d) => ({ ...d }));
+
+  for (const debtor of debtorsCopy) {
     let debt = -debtor.balance;
 
-    for (const creditor of creditors) {
+    for (const creditor of creditorsCopy) {
       if (creditor.balance === 0) continue;
 
       const amount = Math.min(debt, creditor.balance);
@@ -64,7 +70,8 @@ export const settlement = (creditors, debtors) => {
         amount,
       });
 
-      ((creditor.balance -= amount), (debt -= amount));
+      creditor.balance -= amount;
+      debt -= amount;
       if (debt === 0) break;
     }
   }

@@ -1,14 +1,15 @@
 import User from "../models/User.js";
-import { password } from "../utils/password.js";
+import { password as passwordUtil } from "../utils/password.js";
 
 const register = async (data) => {
   try {
-    const { name, email, phone, password, defaultCurrency, language } = data;
+    const { name, email, phone, defaultCurrency, language } = data; // ← don't destructure password
+    const hashedPassword = await passwordUtil.hash(data.password);   // ← use renamed import
     const user = await User.create({
       name,
       email,
       phone,
-      password,
+      password: hashedPassword,
       defaultCurrency,
       language,
     });
@@ -25,13 +26,13 @@ const register = async (data) => {
 
 const login = async (data) => {
   try {
-    const user = await User.findOne({ email: data.email }).select("+password");;
+    const user = await User.findOne({ email: data.email }).select("+password");
     if (!user) {
       const error = new Error("Invalid email or password");
       error.statusCode = 401;
       throw error;
     }
-    const isMatch = await password.compare(data.password, user.password);
+    const isMatch = await passwordUtil.compare(data.password, user.password); // ← use renamed import
     if (!isMatch) {
       const error = new Error("Invalid email or password");
       error.statusCode = 401;
