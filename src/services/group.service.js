@@ -229,7 +229,7 @@ const postMembers = async (requesterId, groupId, body) => {
     const result = await Group.findOneAndUpdate(
       {
         _id: groupId,
-        "members.user": userId,
+        "members.user": requesterId,
         "members.user": { $ne: body.userId },
       },
       {
